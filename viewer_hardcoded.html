@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AERC 2025 — 실시간 현황</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+:root{
+  --bg:#0a0a0a;--surface:#141414;--surface2:#1e1e1e;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.18);
+  --text:#f0f0f0;--muted:#666;
+  --accent:#c8f135;--accent-dim:rgba(200,241,53,0.10);
+  --gold:#FFD700;--silver:#C0C0C0;--bronze:#CD7F32;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;min-height:100vh}
+
+header{padding:1.5rem;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.06em;color:var(--accent)}
+.live-badge{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.live-dot.on{background:#4caf50;box-shadow:0 0 8px #4caf50;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.container{max-width:700px;margin:0 auto;padding:1.25rem}
+
+.tab-bar{display:flex;border-bottom:0.5px solid var(--border);margin-bottom:1.5rem}
+.tab{padding:10px 18px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:'Noto Sans KR',sans-serif}
+.tab.active{color:var(--accent);border-bottom:2px solid var(--accent)}
+.page{display:none}.page.active{display:block}
+
+/* Prelim viewer */
+.race-section{margin-bottom:1.5rem}
+.race-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;letter-spacing:.04em}
+.b1{background:#2a2060;color:#a89ff5}.b3{background:#0d3325;color:#5dcaa5}.b10{background:#3a2800;color:#ef9f27}
+.bm{background:#0d2a3a;color:#5bb7eb}.bf{background:#3a0d1e;color:#ed93b1}.bmix{background:#1a3a0d;color:#97c459}
+.race-lbl{font-size:13px;font-weight:500;color:var(--text)}
+
+.group-row{background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:.75rem 1rem;margin-bottom:.5rem}
+.group-name{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.match-display{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.match-display:last-child{margin-bottom:0}
+.crew-display{flex:1;padding:7px 10px;font-size:12px;border-radius:7px;text-align:center;background:var(--surface2);border:0.5px solid var(--border);color:var(--muted)}
+.crew-display.winner{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:700}
+.crew-display.loser{opacity:.3}
+.vs-txt{font-size:10px;color:var(--muted);min-width:16px;text-align:center;font-weight:700}
+.bye-display{flex:1;padding:7px 10px;font-size:12px;border-radius:7px;text-align:center;background:var(--surface2);border:0.5px solid var(--border);color:var(--muted)}
+
+/* Finalist chips */
+.finalist-bar{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:0.5px solid var(--border)}
+.fin-chip{font-size:11px;padding:3px 10px;border-radius:99px;background:var(--accent-dim);border:0.5px solid var(--accent);color:var(--accent);font-weight:500}
+.fin-chip.empty{background:var(--surface2);border-color:var(--border2);color:var(--muted)}
+
+/* Scoreboard */
+.scoreboard{background:var(--surface);border:0.5px solid var(--border);border-radius:14px;overflow:hidden}
+.score-header{padding:1rem 1.25rem;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.score-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.05em;color:var(--accent)}
+.score-updated{font-size:11px;color:var(--muted)}
+
+.score-row{display:flex;align-items:center;padding:.85rem 1.25rem;border-bottom:0.5px solid var(--border);transition:background .3s}
+.score-row:last-child{border-bottom:none}
+.score-row.rank1{background:rgba(200,241,53,0.06)}
+.score-rank{font-size:22px;width:36px;flex-shrink:0}
+.score-crew{flex:1;font-size:14px;font-weight:700;color:var(--text);margin:0 12px}
+.score-breakdown{display:flex;gap:6px;flex-wrap:wrap;margin-right:12px}
+.score-chip{font-size:10px;padding:2px 7px;border-radius:99px;background:var(--surface2);border:0.5px solid var(--border2);color:var(--muted)}
+.score-chip.has{color:var(--text);border-color:rgba(255,255,255,0.25)}
+.score-total{font-size:20px;font-weight:700;color:var(--accent);min-width:48px;text-align:right}
+.score-row.rank1 .score-total{font-size:24px}
+
+.empty-state{padding:2rem;text-align:center;color:var(--muted);font-size:13px}
+
+/* Capture view */
+.capture-view{background:var(--bg);padding:1.5rem}
+.capture-title{font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent);letter-spacing:.05em;margin-bottom:.25rem}
+.capture-sub{font-size:12px;color:var(--muted);margin-bottom:1.5rem}
+.capture-podium{display:flex;align-items:flex-end;justify-content:center;gap:12px;margin-bottom:2rem}
+.podium-item{text-align:center;flex:1;max-width:180px}
+.podium-box{border-radius:10px 10px 0 0;display:flex;align-items:flex-end;justify-content:center;padding:.75rem .5rem .5rem}
+.podium-item:nth-child(1) .podium-box{background:rgba(192,192,192,.12);border:0.5px solid var(--silver);height:100px}
+.podium-item:nth-child(2) .podium-box{background:rgba(255,215,0,.12);border:0.5px solid var(--gold);height:130px}
+.podium-item:nth-child(3) .podium-box{background:rgba(205,127,50,.12);border:0.5px solid var(--bronze);height:80px}
+.podium-rank{font-size:28px}
+.podium-crew{font-size:13px;font-weight:700;color:var(--text);margin-top:6px}
+.podium-pts{font-size:12px;color:var(--muted);margin-top:2px}
+.capture-list{background:var(--surface);border-radius:12px;overflow:hidden}
+.capture-row{display:flex;align-items:center;padding:.75rem 1rem;border-bottom:0.5px solid var(--border)}
+.capture-row:last-child{border-bottom:none}
+.cap-rank{width:32px;font-size:13px;color:var(--muted)}
+.cap-crew{flex:1;font-size:13px;font-weight:700}
+.cap-pts{font-size:14px;font-weight:700;color:var(--accent)}
+.cap-breakdown{font-size:11px;color:var(--muted);margin-left:8px}
+
+.btn{padding:9px 18px;font-size:13px;font-weight:500;border-radius:8px;border:0.5px solid var(--border2);background:transparent;color:var(--text);cursor:pointer;margin-right:8px;font-family:'Noto Sans KR',sans-serif}
+.btn-p{background:var(--accent);color:#0a0a0a;border-color:var(--accent);font-weight:700}
+
+/* Setup overlay */
+.setup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:999;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+.setup-box{background:var(--surface);border:0.5px solid var(--border2);border-radius:16px;padding:2rem;max-width:440px;width:100%}
+.setup-title{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);margin-bottom:.5rem;letter-spacing:.04em}
+.setup-desc{font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:1.25rem}
+.setup-input{width:100%;padding:10px 12px;border-radius:8px;border:0.5px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px}
+.setup-input:focus{outline:none;border-color:var(--accent)}
+code{background:rgba(200,241,53,.12);color:var(--accent);padding:1px 5px;border-radius:4px;font-size:11px}
+</style>
+</head>
+<body>
+
+<!-- Firebase Setup Overlay -->
+
+<header>
+  <div class="logo">AERC 2025</div>
+  <div class="live-badge">
+    <div class="live-dot" id="liveDot"></div>
+    <span id="liveLabel">연결 중...</span>
+  </div>
+</header>
+
+<div class="container">
+  <div class="tab-bar">
+    <button class="tab active" onclick="goTab('score')">순위표</button>
+    <button class="tab" onclick="goTab('prelim')">예선 현황</button>
+    <button class="tab" onclick="goTab('capture')">캡처 화면</button>
+  </div>
+
+  <div id="tab-score" class="page active">
+    <div class="scoreboard" id="scoreboard">
+      <div class="score-header">
+        <span class="score-title">CREW STANDINGS</span>
+        <span class="score-updated" id="updatedAt">—</span>
+      </div>
+      <div class="empty-state">결승 데이터를 기다리는 중...</div>
+    </div>
+  </div>
+
+  <div id="tab-prelim" class="page">
+    <div id="prelim-view"></div>
+  </div>
+
+  <div id="tab-capture" class="page">
+    <div style="margin-bottom:1rem;display:flex;align-items:center;gap:8px">
+      <button class="btn btn-p" onclick="window.print()">🖨 인쇄 / 캡처</button>
+      <span style="font-size:12px;color:var(--muted)">Cmd+P 또는 Ctrl+P로 PDF 저장 가능</span>
+    </div>
+    <div class="capture-view" id="capture-view">
+      <div class="empty-state">데이터를 기다리는 중...</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const RACES=[
+  {id:'r0',type:'1v1',label:'1vs1 남자부',b1:'b1',b2:'bm',b2t:'남자부',
+   groups:[{name:'A조',matches:[['와우산30','JSRC'],['RU:SH','EES','BRICK TOKYO']]},{name:'B조',matches:[['PRRC','서울비너스'],['꼬뮨드서울','경달','NRR']]}]},
+  {id:'r1',type:'1v1',label:'1vs1 여자부',b1:'b1',b2:'bf',b2t:'여자부',
+   groups:[{name:'A조',matches:[['JSRC','EES'],['서울비너스','NRR','꼬뮨드서울']]},{name:'B조',matches:[['PRRC','경달'],['와우산30','RU:SH']]}]},
+  {id:'r2',type:'3v3',label:'3vs3 남자부',b1:'b3',b2:'bm',b2t:'남자부',
+   groups:[{name:'A조',matches:[['경달','NRR'],['서울비너스','JSRC','BRICK TOKYO']]},{name:'B조',matches:[['RU:SH','꼬뮨드서울'],['PRRC','와우산30','EES']]}]},
+  {id:'r3',type:'3v3',label:'3vs3 여자부',b1:'b3',b2:'bf',b2t:'여자부',
+   groups:[{name:'A조',matches:[['RU:SH','JSRC'],['NRR','경달','EES']]},{name:'B조',matches:[['꼬뮨드서울','PRRC'],['서울비너스','와우산30']]}]},
+  {id:'r4',type:'10v10',label:'10vs10 혼성',b1:'b10',b2:'bmix',b2t:'혼성',
+   groups:[{name:'A조',matches:[['EES','경달'],['JSRC','NRR','RU:SH']]},{name:'B조',matches:[['꼬뮨드서울','와우산30'],['서울비너스','PRRC']]}]}
+];
+const PTS={'1v1':[5,3,2,1],'3v3':[8,4,2,1],'10v10':[10,6,3,1]};
+let matchWinners={}, finalRanks={};
+
+function getFinalists(raceId){
+  const race=RACES.find(r=>r.id===raceId);
+  return race.groups.flatMap((grp,gi)=>grp.matches.map((match,mi)=>{
+    if(match.length===1)return match[0];
+    return matchWinners[raceId+'_'+gi+'_'+mi]||null;
+  }));
+}
+
+function calcTotals(){
+  const totals={};
+  RACES.forEach(r=>{
+    if(!finalRanks[r.id])return;
+    Object.entries(finalRanks[r.id]).forEach(([crew,rank])=>{
+      if(!rank)return;
+      if(!totals[crew])totals[crew]={total:0,detail:{}};
+      const p=PTS[r.type][rank-1]||0;
+      totals[crew].total+=p;
+      totals[crew].detail[r.id]={pts:p,rank};
+    });
+  });
+  return Object.entries(totals).sort((a,b)=>b[1].total-a[1].total);
+}
+
+function renderScoreboard(){
+  const sorted=calcTotals();
+  const el=document.getElementById('scoreboard');
+  const medals=['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+  const now=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  let html=`<div class="score-header"><span class="score-title">CREW STANDINGS</span><span class="score-updated">업데이트 ${now}</span></div>`;
+  if(sorted.length===0){html+=`<div class="empty-state">결승 순위 데이터를 기다리는 중...</div>`;}
+  else{
+    sorted.forEach(([crew,data],idx)=>{
+      const chips=RACES.map(r=>{const d=data.detail[r.id];return`<span class="score-chip ${d?'has':''}">${r.label.split(' ')[0]} ${r.b2t.slice(0,1)} ${d?d.pts+'pt':'-'}</span>`;}).join('');
+      html+=`<div class="score-row ${idx===0?'rank1':''}">
+        <span class="score-rank">${medals[idx]||idx+1}</span>
+        <span class="score-crew">${crew}</span>
+        <div class="score-breakdown">${chips}</div>
+        <span class="score-total">${data.total}pt</span>
+      </div>`;
+    });
+  }
+  el.innerHTML=html;
+}
+
+function renderPrelim(){
+  const el=document.getElementById('prelim-view');
+  let html='';
+  RACES.forEach(r=>{
+    html+=`<div class="race-section"><div class="race-header">
+      <span class="badge ${r.b1}">${r.label.split(' ')[0]}</span>
+      <span class="badge ${r.b2}">${r.b2t}</span>
+      <span class="race-lbl">${r.label}</span>
+    </div>`;
+    r.groups.forEach((grp,gi)=>{
+      html+=`<div class="group-row"><div class="group-name">${grp.name}</div>`;
+      grp.matches.forEach((match,mi)=>{
+        const key=r.id+'_'+gi+'_'+mi;
+        const winner=matchWinners[key];
+        if(match.length===1){
+          html+=`<div class="match-display"><div class="bye-display">${match[0]} · 부전승</div></div>`;
+        }else{
+          html+=`<div class="match-display">`;
+          match.forEach((crew,ci)=>{
+            if(ci>0)html+=`<span class="vs-txt">VS</span>`;
+            const cls=winner?(winner===crew?'winner':'loser'):'';
+            html+=`<div class="crew-display ${cls}">${crew}</div>`;
+          });
+          html+=`</div>`;
+        }
+      });
+      const fin=getFinalists(r.id);
+      html+=`<div class="finalist-bar">`;
+      fin.forEach(f=>{ html+=f?`<span class="fin-chip">${f}</span>`:`<span class="fin-chip empty">미정</span>`; });
+      html+=`</div></div>`;
+    });
+    html+=`</div>`;
+  });
+  el.innerHTML=html;
+}
+
+function renderCapture(){
+  const sorted=calcTotals();
+  const el=document.getElementById('capture-view');
+  if(sorted.length===0){el.innerHTML=`<div class="empty-state">데이터를 기다리는 중...</div>`;return;}
+  const medals=['🥇','🥈','🥉'];
+  const podiumOrder=[sorted[1],sorted[0],sorted[2]].filter(Boolean);
+  let html=`<div class="capture-title">AWAKEN EKINDE RACE 2025</div>
+    <div class="capture-sub">CREW FINAL STANDINGS</div>`;
+  if(sorted.length>=2){
+    html+=`<div class="capture-podium">`;
+    podiumOrder.forEach((item,i)=>{
+      const realIdx=sorted.indexOf(item);
+      html+=`<div class="podium-item">
+        <div class="podium-box"><span class="podium-rank">${medals[realIdx]||realIdx+1}</span></div>
+        <div class="podium-crew">${item[0]}</div>
+        <div class="podium-pts">${item[1].total}pt</div>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+  html+=`<div class="capture-list">`;
+  sorted.forEach(([crew,data],idx)=>{
+    const breakdown=RACES.filter(r=>data.detail[r.id]).map(r=>`${r.label.split(' ')[0]}${r.b2t.slice(0,1)} ${data.detail[r.id].pts}pt`).join(' · ');
+    html+=`<div class="capture-row">
+      <span class="cap-rank">${medals[idx]||idx+1+'위'}</span>
+      <span class="cap-crew">${crew}</span>
+      <span class="cap-breakdown">${breakdown}</span>
+      <span class="cap-pts">${data.total}pt</span>
+    </div>`;
+  });
+  html+=`</div>`;
+  el.innerHTML=html;
+}
+
+function renderAll(){
+  renderScoreboard();
+  renderPrelim();
+  renderCapture();
+}
+
+window.goTab=function(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  const idx={score:0,prelim:1,capture:2}[name];
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+};
+
+function initFirebase(cfg){
+  try{
+    const app=initializeApp(cfg);
+    const db=getDatabase(app);
+    document.getElementById('setupOverlay').style.display='none';
+    document.getElementById('liveDot').className='live-dot on';
+    document.getElementById('liveLabel').textContent='실시간 연결됨';
+    onValue(ref(db,'aerc/state'),snap=>{
+      const data=snap.val();
+      if(data){matchWinners=data.matchWinners||{};finalRanks=data.finalRanks||{};}
+      renderAll();
+    });
+  }catch(e){
+    document.getElementById('cfg_error').textContent='연결 실패: '+e.message;
+    document.getElementById('cfg_error').style.display='block';
+  }
+}
+
+// Auto-connect with hardcoded config
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDDT3ab6ucSs8m5pJv6YF3NgsSLTZX0YKs",
+  authDomain: "awaken-ekiden-race-2026.firebaseapp.com",
+  databaseURL: "https://awaken-ekiden-race-2026-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "awaken-ekiden-race-2026",
+  storageBucket: "awaken-ekiden-race-2026.firebasestorage.app",
+  messagingSenderId: "960319825953",
+  appId: "1:960319825953:web:715c0e4324f37b0ac59b60"
+};
+initFirebase(FIREBASE_CONFIG);
+</script>
+</body>
+</html>

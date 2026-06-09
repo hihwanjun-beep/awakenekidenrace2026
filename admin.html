@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AERC 2025 — 관리자</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+:root{
+  --bg:#0a0a0a;--surface:#141414;--surface2:#1e1e1e;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.18);
+  --text:#f0f0f0;--muted:#777;
+  --accent:#c8f135;--accent-dim:rgba(200,241,53,0.12);
+  --red:#ff4444;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;min-height:100vh;padding-bottom:5rem}
+header{padding:1.5rem;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.06em;color:var(--accent)}
+.admin-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--red);color:#fff;letter-spacing:.08em}
+.sync-status{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.sync-dot.live{background:#4caf50;box-shadow:0 0 6px #4caf50}
+
+.container{max-width:700px;margin:0 auto;padding:1.25rem}
+.tab-bar{display:flex;border-bottom:0.5px solid var(--border);margin-bottom:1.5rem}
+.tab{padding:10px 18px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:'Noto Sans KR',sans-serif;transition:color .15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom:2px solid var(--accent)}
+.page{display:none}.page.active{display:block}
+
+.info-box{background:var(--surface);border:0.5px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted);margin-bottom:1.25rem;line-height:1.7}
+.race-card{background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:.75rem}
+.race-head{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;letter-spacing:.04em}
+.b1{background:#2a2060;color:#a89ff5}.b3{background:#0d3325;color:#5dcaa5}.b10{background:#3a2800;color:#ef9f27}
+.bm{background:#0d2a3a;color:#5bb7eb}.bf{background:#3a0d1e;color:#ed93b1}.bmix{background:#1a3a0d;color:#97c459}
+
+.group-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.match-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.match-row:last-child{margin-bottom:0}
+.crew-btn{flex:1;padding:9px 6px;font-size:12px;font-weight:500;border-radius:8px;border:0.5px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer;text-align:center;font-family:'Noto Sans KR',sans-serif;transition:all .12s}
+.crew-btn:hover{border-color:var(--accent);color:var(--accent)}
+.crew-btn.winner{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:700}
+.crew-btn.loser{opacity:.3}
+.vs-lbl{font-size:10px;color:var(--muted);min-width:16px;text-align:center;font-weight:700}
+.bye-crew{flex:1;padding:9px 10px;font-size:12px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface2);color:var(--muted);text-align:center}
+
+.finalist-section{margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border)}
+.finalist-lbl{font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em}
+.finalist-row{display:flex;gap:6px;flex-wrap:wrap}
+.finalist-chip{font-size:11px;padding:3px 10px;border-radius:99px;background:var(--accent-dim);border:0.5px solid var(--accent);color:var(--accent);font-weight:500}
+.finalist-chip.empty{background:var(--surface2);border-color:var(--border2);color:var(--muted)}
+
+.group-block{margin-bottom:14px}.group-block:last-child{margin-bottom:0}
+.race-title-txt{font-size:13px;font-weight:500;color:var(--text)}
+.finalist-count{font-size:10px;color:var(--muted);margin-left:auto}
+
+.final-inner{background:var(--surface2);border-radius:8px;padding:10px 12px;margin-top:10px}
+.final-crew-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--border)}
+.final-crew-row:last-child{border-bottom:none}
+.crew-name-lbl{flex:1;font-size:13px;font-weight:500;color:var(--text)}
+select{font-size:13px;padding:4px 8px;border-radius:6px;border:0.5px solid var(--border2);background:var(--surface);color:var(--text);cursor:pointer;font-family:'Noto Sans KR',sans-serif}
+.pt-tag{font-size:12px;color:var(--muted);min-width:38px;text-align:right}
+.pt-tag.filled{color:var(--accent);font-weight:700}
+
+.sec-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:1.5rem 0 8px}
+.total-card{background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:1rem 1.25rem;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-weight:500;color:var(--muted);padding:6px 4px;text-align:center;border-bottom:0.5px solid var(--border);font-size:10px;line-height:1.4;white-space:nowrap}
+th:nth-child(2){text-align:left}
+td{padding:8px 4px;border-bottom:0.5px solid var(--border);text-align:center;color:var(--muted)}
+td:nth-child(2){text-align:left;font-size:13px;font-weight:700;color:var(--text)}
+tr:last-child td{border-bottom:none}
+td.has-pt{color:var(--text)}
+td.total-pt{text-align:right;font-size:15px;font-weight:700;color:var(--accent)}
+tr.rank1 td.total-pt{font-size:18px}
+
+.btn{padding:9px 18px;font-size:13px;font-weight:500;border-radius:8px;border:0.5px solid var(--border2);background:transparent;color:var(--text);cursor:pointer;margin-right:8px;font-family:'Noto Sans KR',sans-serif;transition:all .12s}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn-p{background:var(--accent);color:#0a0a0a;border-color:var(--accent);font-weight:700}
+.btn-p:hover{background:#b0d82e;border-color:#b0d82e;color:#0a0a0a}
+.btn-danger{border-color:var(--red);color:var(--red)}
+.btn-danger:hover{background:var(--red);color:#fff}
+
+.empty-state{font-size:13px;color:var(--muted);padding:4px 0}
+
+/* Setup overlay */
+.setup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:999;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+.setup-box{background:var(--surface);border:0.5px solid var(--border2);border-radius:16px;padding:2rem;max-width:480px;width:100%}
+.setup-title{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);margin-bottom:.5rem;letter-spacing:.04em}
+.setup-desc{font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:1.25rem}
+.setup-input{width:100%;padding:10px 12px;border-radius:8px;border:0.5px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px;font-family:'Noto Sans KR',sans-serif;margin-bottom:8px}
+.setup-input:focus{outline:none;border-color:var(--accent)}
+.setup-step{font-size:11px;color:var(--muted);margin-bottom:6px;padding:8px 12px;background:var(--surface2);border-radius:6px;line-height:1.6}
+code{background:rgba(200,241,53,.12);color:var(--accent);padding:1px 5px;border-radius:4px;font-size:11px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+
+<!-- Firebase Setup Overlay -->
+<div class="setup-overlay" id="setupOverlay">
+  <div class="setup-box">
+    <div class="setup-title">Firebase 연결 설정</div>
+    <div class="setup-desc">
+      실시간 동기화를 위해 Firebase 설정이 필요합니다.<br>
+      아래 단계를 따라 설정 정보를 입력해 주세요.
+    </div>
+    <div class="setup-step">
+      1. <a href="https://console.firebase.google.com" target="_blank" style="color:var(--accent)">console.firebase.google.com</a> → 프로젝트 만들기<br>
+      2. <strong>Realtime Database</strong> → 데이터베이스 만들기 → <strong>테스트 모드</strong> → <code>asia-southeast1</code><br>
+      3. ⚙️ 프로젝트 설정 → 내 앱 → <code>&lt;/&gt;</code> 웹 앱 등록 → <code>firebaseConfig</code> 복사
+    </div>
+    <div style="margin-top:1rem;font-size:11px;color:var(--muted);margin-bottom:6px">firebaseConfig의 각 값을 입력하세요</div>
+    <input class="setup-input" id="cfg_apiKey" placeholder="apiKey">
+    <input class="setup-input" id="cfg_authDomain" placeholder="authDomain (예: aerc-2025.firebaseapp.com)">
+    <input class="setup-input" id="cfg_dbURL" placeholder="databaseURL (예: https://aerc-2025-default-rtdb.asia-southeast1.firebasedatabase.app)">
+    <input class="setup-input" id="cfg_projectId" placeholder="projectId (예: aerc-2025)">
+    <input class="setup-input" id="cfg_appId" placeholder="appId">
+    <div style="margin-top:1rem;display:flex;gap:8px">
+      <button class="btn btn-p" onclick="saveFirebaseConfig()" style="flex:1">연결하기</button>
+      <button class="btn" onclick="useLocalOnly()" style="font-size:12px">로컬만 사용</button>
+    </div>
+    <div id="cfg_error" style="font-size:12px;color:var(--red);margin-top:8px;display:none"></div>
+  </div>
+</div>
+
+<header>
+  <div class="logo">AERC 2025</div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="sync-status">
+      <div class="sync-dot" id="syncDot"></div>
+      <span id="syncLabel">연결 대기</span>
+    </div>
+    <span class="admin-badge">ADMIN</span>
+  </div>
+</header>
+
+<div class="container">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:8px">
+    <div style="font-size:12px;color:var(--muted)">뷰어 링크: <span id="viewerLink" style="color:var(--accent);font-size:11px">—</span></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" style="font-size:12px;padding:6px 12px" onclick="copyViewerLink()">링크 복사</button>
+      <button class="btn btn-danger" style="font-size:12px;padding:6px 12px" onclick="resetAll()">전체 초기화</button>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab active" onclick="goTab('prelim')">예선 승자 선택</button>
+    <button class="tab" onclick="goTab('final')">결승 순위 &amp; 포인트</button>
+  </div>
+
+  <div id="tab-prelim" class="page active">
+    <div class="info-box">각 대결에서 이긴 크루를 클릭하세요. 결과는 실시간으로 뷰어에 반영됩니다.</div>
+    <div id="prelim-content"></div>
+    <div style="margin-top:1.25rem">
+      <button class="btn btn-p" onclick="goTab('final')">결승 순위 입력 →</button>
+    </div>
+  </div>
+
+  <div id="tab-final" class="page">
+    <div class="info-box">결승 진출 크루의 순위를 선택하세요. 1vs1: 5·3·2·1pt | 3vs3: 8·4·2·1pt | 10vs10: 10·6·3·1pt</div>
+    <div id="final-content"></div>
+    <div class="sec-lbl">크루 포인트 합계</div>
+    <div class="total-card" id="total-block"><div class="empty-state">결승 순위를 입력하면 자동 계산됩니다</div></div>
+    <div style="margin-top:1rem"><button class="btn" onclick="goTab('prelim')">← 예선 수정</button></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, set, onValue } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const RACES = [
+  {id:'r0',type:'1v1',label:'1vs1 남자부',b1:'b1',b2:'bm',b2t:'남자부',
+   groups:[{name:'A조',matches:[['와우산30','JSRC'],['RU:SH','EES','BRICK TOKYO']]},{name:'B조',matches:[['PRRC','서울비너스'],['꼬뮨드서울','경달','NRR']]}]},
+  {id:'r1',type:'1v1',label:'1vs1 여자부',b1:'b1',b2:'bf',b2t:'여자부',
+   groups:[{name:'A조',matches:[['JSRC','EES'],['서울비너스','NRR','꼬뮨드서울']]},{name:'B조',matches:[['PRRC','경달'],['와우산30','RU:SH']]}]},
+  {id:'r2',type:'3v3',label:'3vs3 남자부',b1:'b3',b2:'bm',b2t:'남자부',
+   groups:[{name:'A조',matches:[['경달','NRR'],['서울비너스','JSRC','BRICK TOKYO']]},{name:'B조',matches:[['RU:SH','꼬뮨드서울'],['PRRC','와우산30','EES']]}]},
+  {id:'r3',type:'3v3',label:'3vs3 여자부',b1:'b3',b2:'bf',b2t:'여자부',
+   groups:[{name:'A조',matches:[['RU:SH','JSRC'],['NRR','경달','EES']]},{name:'B조',matches:[['꼬뮨드서울','PRRC'],['서울비너스','와우산30']]}]},
+  {id:'r4',type:'10v10',label:'10vs10 혼성',b1:'b10',b2:'bmix',b2t:'혼성',
+   groups:[{name:'A조',matches:[['EES','경달'],['JSRC','NRR','RU:SH']]},{name:'B조',matches:[['꼬뮨드서울','와우산30'],['서울비너스','PRRC']]}]}
+];
+const PTS={'1v1':[5,3,2,1],'3v3':[8,4,2,1],'10v10':[10,6,3,1]};
+
+let db=null, localOnly=false;
+let matchWinners={}, finalRanks={};
+RACES.forEach(r=>{finalRanks[r.id]={};});
+
+// ── Firebase Config ──
+window.saveFirebaseConfig = function(){
+  const cfg={
+    apiKey:document.getElementById('cfg_apiKey').value.trim(),
+    authDomain:document.getElementById('cfg_authDomain').value.trim(),
+    databaseURL:document.getElementById('cfg_dbURL').value.trim(),
+    projectId:document.getElementById('cfg_projectId').value.trim(),
+    appId:document.getElementById('cfg_appId').value.trim(),
+    storageBucket:'',messagingSenderId:''
+  };
+  if(!cfg.apiKey||!cfg.databaseURL||!cfg.projectId){
+    document.getElementById('cfg_error').textContent='apiKey, databaseURL, projectId는 필수입니다';
+    document.getElementById('cfg_error').style.display='block';
+    return;
+  }
+  localStorage.setItem('aerc_firebase_cfg', JSON.stringify(cfg));
+  initFirebase(cfg);
+};
+
+window.useLocalOnly = function(){
+  localOnly=true;
+  document.getElementById('setupOverlay').style.display='none';
+  setSyncStatus(false);
+  loadFromLocal();
+  buildPrelim();
+};
+
+function initFirebase(cfg){
+  try{
+    const app = initializeApp(cfg);
+    db = getDatabase(app);
+    document.getElementById('setupOverlay').style.display='none';
+    setSyncStatus(true);
+    // viewer link
+    const vUrl = window.location.href.replace('admin.html','viewer.html');
+    document.getElementById('viewerLink').textContent = vUrl;
+    // listen
+    onValue(ref(db,'aerc/state'), snap=>{
+      const data = snap.val();
+      if(data){
+        matchWinners = data.matchWinners||{};
+        finalRanks = data.finalRanks||{};
+        RACES.forEach(r=>{if(!finalRanks[r.id])finalRanks[r.id]={};});
+      }
+      buildPrelim();
+      refreshFinalUI();
+      updateTotals();
+    });
+  }catch(e){
+    document.getElementById('cfg_error').textContent='연결 실패: '+e.message;
+    document.getElementById('cfg_error').style.display='block';
+  }
+}
+
+function setSyncStatus(live){
+  document.getElementById('syncDot').className='sync-dot'+(live?' live':'');
+  document.getElementById('syncLabel').textContent=live?'실시간 연결됨':'로컬 전용';
+}
+
+function saveState(){
+  const state={matchWinners, finalRanks};
+  localStorage.setItem('aerc_state', JSON.stringify(state));
+  if(db&&!localOnly){
+    set(ref(db,'aerc/state'), state);
+  }
+}
+
+function loadFromLocal(){
+  const saved = localStorage.getItem('aerc_state');
+  if(saved){
+    const d=JSON.parse(saved);
+    matchWinners=d.matchWinners||{};
+    finalRanks=d.finalRanks||{};
+    RACES.forEach(r=>{if(!finalRanks[r.id])finalRanks[r.id]={};});
+  }
+}
+
+// ── Prelim ──
+window.pickWinner = function(raceId,gi,mi,crewIdx){
+  const race=RACES.find(r=>r.id===raceId);
+  const match=race.groups[gi].matches[mi];
+  const key=raceId+'_'+gi+'_'+mi;
+  matchWinners[key]=match[crewIdx];
+  saveState();
+  match.forEach((_,idx)=>{
+    const btn=document.getElementById('btn_'+raceId+'_'+gi+'_'+mi+'_'+idx);
+    if(!btn)return;
+    btn.classList.remove('winner','loser');
+    btn.classList.add(idx===crewIdx?'winner':'loser');
+  });
+  updateFinalistsBar(raceId);
+};
+
+function getFinalists(raceId){
+  const race=RACES.find(r=>r.id===raceId);
+  const result=[];
+  race.groups.forEach((grp,gi)=>{
+    grp.matches.forEach((match,mi)=>{
+      if(match.length===1){result.push(match[0]);}
+      else{const key=raceId+'_'+gi+'_'+mi;result.push(matchWinners[key]||null);}
+    });
+  });
+  return result;
+}
+
+function updateFinalistsBar(raceId){
+  const el=document.getElementById('fin_'+raceId);
+  if(!el)return;
+  const fin=getFinalists(raceId);
+  el.innerHTML=fin.map(f=>f?`<span class="finalist-chip">${f}</span>`:`<span class="finalist-chip empty">미정</span>`).join('');
+}
+
+window.buildPrelim = function(){
+  const el=document.getElementById('prelim-content');
+  let html='';
+  RACES.forEach(r=>{
+    const totalSlots=r.groups.reduce((s,g)=>s+g.matches.length,0);
+    html+=`<div class="race-card"><div class="race-head">
+      <span class="badge ${r.b1}">${r.label.split(' ')[0]}</span>
+      <span class="badge ${r.b2}">${r.b2t}</span>
+      <span class="race-title-txt">${r.label}</span>
+      <span class="finalist-count">결승 ${totalSlots}크루</span>
+    </div>`;
+    r.groups.forEach((grp,gi)=>{
+      html+=`<div class="group-block"><div class="group-lbl">${grp.name}</div>`;
+      grp.matches.forEach((match,mi)=>{
+        const key=r.id+'_'+gi+'_'+mi;
+        const saved=matchWinners[key];
+        if(match.length===1){
+          html+=`<div class="match-row"><div class="bye-crew">${match[0]} · 부전승</div></div>`;
+        }else{
+          html+=`<div class="match-row">`;
+          match.forEach((crew,ci)=>{
+            if(ci>0)html+=`<span class="vs-lbl">VS</span>`;
+            const cls=saved?(saved===crew?'winner':'loser'):'';
+            html+=`<button class="crew-btn ${cls}" id="btn_${r.id}_${gi}_${mi}_${ci}" onclick="pickWinner('${r.id}',${gi},${mi},${ci})">${crew}</button>`;
+          });
+          html+=`</div>`;
+        }
+      });
+      html+=`</div>`;
+    });
+    html+=`<div class="finalist-section"><div class="finalist-lbl">결승 진출</div>
+      <div class="finalist-row" id="fin_${r.id}">`;
+    const fin=getFinalists(r.id);
+    html+=fin.map(f=>f?`<span class="finalist-chip">${f}</span>`:`<span class="finalist-chip empty">미정</span>`).join('');
+    html+=`</div></div></div>`;
+  });
+  el.innerHTML=html;
+};
+
+// ── Final ──
+window.buildFinal = function(){
+  const el=document.getElementById('final-content');
+  let html='';
+  RACES.forEach(r=>{
+    const fin=getFinalists(r.id).filter(Boolean);
+    const expected=r.groups.reduce((s,g)=>s+g.matches.length,0);
+    const pts=PTS[r.type];
+    html+=`<div class="sec-lbl">${r.label}</div><div class="race-card">`;
+    if(fin.length<expected){
+      html+=`<div class="empty-state">예선 승자를 먼저 모두 선택해 주세요 (${fin.length}/${expected})</div>`;
+    }else{
+      html+=`<div style="font-size:11px;color:var(--muted);margin-bottom:6px">결승 진출 ${fin.length}크루 동시 출전</div><div class="final-inner">`;
+      fin.forEach((crew,cidx)=>{
+        const saved=finalRanks[r.id]?finalRanks[r.id][crew]:null;
+        let opts='<option value="">순위 선택</option>';
+        fin.forEach((_,ri)=>{opts+=`<option value="${ri+1}" ${saved===ri+1?'selected':''}>${ri+1}위 (${pts[ri]}pt)</option>`;});
+        const ptTxt=saved?pts[saved-1]+'pt':'-';
+        const ptCls=saved?'pt-tag filled':'pt-tag';
+        html+=`<div class="final-crew-row">
+          <span class="crew-name-lbl">${crew}</span>
+          <select data-race="${r.id}" data-cidx="${cidx}" data-type="${r.type}" onchange="setFinal(this)">${opts}</select>
+          <span class="${ptCls}" id="fpt_${r.id}_${cidx}">${ptTxt}</span>
+        </div>`;
+      });
+      html+=`</div>`;
+    }
+    html+=`</div>`;
+  });
+  el.innerHTML=html;
+  updateTotals();
+};
+
+function refreshFinalUI(){
+  const el=document.getElementById('final-content');
+  if(el&&el.innerHTML.trim()&&el.innerHTML.includes('final-crew-row')) buildFinal();
+}
+
+window.setFinal = function(sel){
+  const raceId=sel.dataset.race;
+  const cidx=parseInt(sel.dataset.cidx);
+  const raceType=sel.dataset.type;
+  const val=sel.value?parseInt(sel.value):null;
+  const fin=getFinalists(raceId).filter(Boolean);
+  const crew=fin[cidx];
+  if(!finalRanks[raceId])finalRanks[raceId]={};
+  if(val)finalRanks[raceId][crew]=val;
+  else delete finalRanks[raceId][crew];
+  saveState();
+  const ptEl=document.getElementById('fpt_'+raceId+'_'+cidx);
+  if(ptEl){ptEl.textContent=val?PTS[raceType][val-1]+'pt':'-';ptEl.className=val?'pt-tag filled':'pt-tag';}
+  updateTotals();
+};
+
+function updateTotals(){
+  const totals={};
+  RACES.forEach(r=>{
+    if(!finalRanks[r.id])return;
+    Object.entries(finalRanks[r.id]).forEach(([crew,rank])=>{
+      if(!rank)return;
+      if(!totals[crew])totals[crew]={total:0,detail:{}};
+      const p=PTS[r.type][rank-1]||0;
+      totals[crew].total+=p;
+      totals[crew].detail[r.id]=p;
+    });
+  });
+  const sorted=Object.entries(totals).sort((a,b)=>b[1].total-a[1].total);
+  const el=document.getElementById('total-block');
+  if(!el)return;
+  if(sorted.length===0){el.innerHTML=`<div class="empty-state">결승 순위를 입력하면 자동 계산됩니다</div>`;return;}
+  const rIds=RACES.map(r=>r.id);
+  const rLabels=['1vs1남','1vs1여','3vs3남','3vs3여','10vs10'];
+  const medals=['🥇','🥈','🥉','4위','5위','6위','7위','8위','9위','10위'];
+  let html=`<table><thead><tr><th style="width:28px"></th><th>크루</th>`;
+  rLabels.forEach(l=>{html+=`<th>${l}</th>`;});
+  html+=`<th style="text-align:right">합계</th></tr></thead><tbody>`;
+  sorted.forEach(([crew,data],idx)=>{
+    html+=`<tr class="${idx===0?'rank1':''}"><td style="font-size:13px">${medals[idx]||''}</td><td>${crew}</td>`;
+    rIds.forEach(rid=>{const p=data.detail[rid];html+=`<td class="${p?'has-pt':''}">${p?p+'pt':'-'}</td>`;});
+    html+=`<td class="total-pt">${data.total}pt</td></tr>`;
+  });
+  html+=`</tbody></table>`;
+  el.innerHTML=html;
+}
+
+window.goTab = function(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelectorAll('.tab')[name==='prelim'?0:1].classList.add('active');
+  if(name==='final')buildFinal();
+};
+
+window.copyViewerLink = function(){
+  const vUrl=window.location.href.replace('admin.html','viewer.html');
+  navigator.clipboard.writeText(vUrl).then(()=>alert('뷰어 링크가 복사되었습니다!\n\n'+vUrl));
+};
+
+window.resetAll = function(){
+  if(!confirm('모든 입력 결과를 초기화하시겠습니까?'))return;
+  matchWinners={};finalRanks={};
+  RACES.forEach(r=>{finalRanks[r.id]={};});
+  saveState();
+  buildPrelim();
+  document.getElementById('final-content').innerHTML='';
+  document.getElementById('total-block').innerHTML='<div class="empty-state">결승 순위를 입력하면 자동 계산됩니다</div>';
+};
+
+// ── Init ──
+const savedCfg=localStorage.getItem('aerc_firebase_cfg');
+if(savedCfg){
+  const cfg=JSON.parse(savedCfg);
+  document.getElementById('cfg_apiKey').value=cfg.apiKey||'';
+  document.getElementById('cfg_authDomain').value=cfg.authDomain||'';
+  document.getElementById('cfg_dbURL').value=cfg.databaseURL||'';
+  document.getElementById('cfg_projectId').value=cfg.projectId||'';
+  document.getElementById('cfg_appId').value=cfg.appId||'';
+  initFirebase(cfg);
+}
+</script>
+</body>
+</html>
