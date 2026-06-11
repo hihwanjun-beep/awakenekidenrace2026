@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AERC 2026 — 실시간 현황</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+:root{
+  --bg:#0a0a0a;--surface:#161111;--surface2:#201818;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.16);
+  --text:#f5ece6;--muted:#8a7d77;
+  --accent:#e8253a;--accent-dim:rgba(232,37,58,0.14);
+  --cream:#fbe4d8;
+  --gold:#FFD700;--silver:#C0C0C0;--bronze:#CD7F32;
+  --red:#e8253a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background-color:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;min-height:100vh;
+  background-image:
+    radial-gradient(ellipse 60% 40% at 15% 8%, rgba(232,37,58,0.16) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 35% at 90% 90%, rgba(232,37,58,0.10) 0%, transparent 60%);
+  background-attachment:fixed;
+  overflow-x:hidden;
+}
+header{padding:1.1rem 1.25rem;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:relative}
+header::after{content:'';position:absolute;left:0;right:0;bottom:-0.5px;height:2px;background:linear-gradient(90deg,var(--accent) 0%,transparent 70%);opacity:.6}
+.logo{display:flex;align-items:center}
+.logo svg{display:block}
+.live-badge{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.live-dot.on{background:#4caf50;box-shadow:0 0 8px #4caf50;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.container{max-width:700px;margin:0 auto;padding:1.25rem}
+.tab-bar{display:flex;border-bottom:0.5px solid var(--border);margin-bottom:1.5rem;overflow-x:auto}
+.tab{padding:10px 16px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:'Noto Sans KR',sans-serif;white-space:nowrap}
+.tab.active{color:var(--accent);border-bottom:2px solid var(--accent)}
+.page{display:none}.page.active{display:block}
+.badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;letter-spacing:.04em}
+.b1{background:#2a2060;color:#a89ff5}.b3{background:#0d3325;color:#5dcaa5}
+.b4{background:#3a1a00;color:#f59f5a}.b6{background:#1a003a;color:#c459ef}
+.bm{background:#0d2a3a;color:#5bb7eb}.bf{background:#3a0d1e;color:#ed93b1}.bmix{background:#1a3a0d;color:#97c459}
+
+/* Scoreboard (캡처용 순위표는 capture 탭에 따로) */
+.scoreboard{background:var(--surface);border:0.5px solid var(--border);border-radius:14px;overflow:hidden}
+.score-header{padding:1rem 1.25rem;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.score-title{font-family:'Anton',sans-serif;font-size:20px;letter-spacing:.05em;color:var(--accent);font-style:italic}
+.score-updated{font-size:11px;color:var(--muted)}
+.score-row{display:flex;align-items:center;padding:.85rem 1.25rem;border-bottom:0.5px solid var(--border)}
+.score-row:last-child{border-bottom:none}
+.score-row.rank1{background:var(--accent-dim)}
+.score-rank{font-size:22px;width:36px;flex-shrink:0}
+.score-crew{flex:1;font-size:14px;font-weight:700;color:var(--text);margin:0 12px}
+.score-breakdown{display:flex;gap:5px;flex-wrap:wrap;margin-right:10px}
+.score-chip{font-size:10px;padding:2px 7px;border-radius:99px;background:var(--surface2);border:0.5px solid var(--border2);color:var(--muted)}
+.score-chip.has{color:var(--text);border-color:rgba(255,255,255,0.25)}
+.score-total{font-size:20px;font-weight:700;color:var(--accent);min-width:48px;text-align:right}
+.score-row.rank1 .score-total{font-size:24px;color:var(--cream)}
+.empty-state{padding:2rem;text-align:center;color:var(--muted);font-size:13px}
+
+/* ── 브라켓 (경기 현황) ── */
+.bracket-section{margin-bottom:2rem}
+.bracket-header{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.bracket-lbl{font-size:14px;font-weight:500;color:var(--text)}
+
+/* 결선 박스 */
+.final-box{background:var(--accent-dim);border:0.5px solid var(--accent);border-radius:10px;padding:.75rem 1rem;margin:0 auto;text-align:center;width:50%}
+.final-box-title{font-family:'Anton',sans-serif;font-size:13px;font-weight:400;color:var(--cream);letter-spacing:.06em;font-style:italic}
+.final-box-sub{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* 연결선 영역 */
+.connector-wrap{position:relative;height:34px;margin:0 auto;max-width:100%}
+.connector-svg{width:100%;height:100%;display:block}
+
+/* 조 라벨 행 */
+.group-labels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px}
+.group-label{font-size:10px;font-weight:700;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.08em}
+
+/* 예선 그리드 */
+.prelim-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.prelim-col{display:flex;flex-direction:column;gap:6px}
+.crew-cell{position:relative;padding:9px 8px;font-size:11px;font-weight:500;border-radius:7px;text-align:center;background:var(--surface2);border:0.5px solid var(--border);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crew-cell.winner{background:var(--accent-dim);border-color:var(--accent);color:var(--cream);font-weight:700}
+.crew-cell.loser{opacity:.35}
+.crew-cell.empty-slot{color:var(--muted);font-size:10px;border-style:dashed;background:transparent}
+.crew-cell .trophy{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:11px}
+
+/* 결선 결과 */
+.final-result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:0}
+.final-result-cell{padding:.4rem .25rem;border-radius:8px;text-align:center;border:0.5px solid var(--border)}
+.final-result-cell.gold{background:rgba(255,215,0,0.08);border-color:var(--gold)}
+.final-result-cell.silver{background:rgba(192,192,192,0.08);border-color:var(--silver)}
+.final-result-cell.bronze{background:rgba(205,127,50,0.08);border-color:var(--bronze)}
+.final-result-cell.empty{background:var(--surface2);border-style:dashed;border-color:var(--border2)}
+.final-rank-emoji{font-size:13px}
+.final-crew-name{font-size:10px;font-weight:700;margin-top:2px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.final-crew-pts{font-size:9px;color:var(--muted);margin-top:1px}
+.final-result-cell.gold .final-crew-pts,
+.final-result-cell.gold .final-crew-name{color:#fff8d6}
+.final-result-cell.gold .final-crew-pts{color:var(--gold)}
+
+/* Capture */
+.capture-view{padding:1rem 0}
+.capture-title{font-family:'Anton',sans-serif;font-size:30px;color:var(--cream);letter-spacing:.04em;margin-bottom:.25rem;font-style:italic;text-shadow:2px 2px 0 var(--accent)}
+.capture-sub{font-size:12px;color:var(--muted);margin-bottom:1.5rem;letter-spacing:.08em}
+.capture-podium{display:flex;align-items:flex-end;justify-content:center;gap:12px;margin-bottom:2rem}
+.podium-item{text-align:center;flex:1;max-width:160px}
+.podium-box{border-radius:10px 10px 0 0;display:flex;align-items:center;justify-content:center;padding:.5rem}
+.podium-item:nth-child(1) .podium-box{background:rgba(192,192,192,.12);border:0.5px solid var(--silver);height:90px}
+.podium-item:nth-child(2) .podium-box{background:rgba(255,215,0,.12);border:0.5px solid var(--gold);height:120px}
+.podium-item:nth-child(3) .podium-box{background:rgba(205,127,50,.12);border:0.5px solid var(--bronze);height:70px}
+.podium-rank{font-size:26px}
+.podium-crew{font-size:12px;font-weight:700;color:var(--text);margin-top:6px}
+.podium-pts{font-size:12px;color:var(--accent);margin-top:2px;font-weight:700}
+.capture-list{background:var(--surface);border-radius:12px;overflow:hidden}
+.capture-row{display:flex;align-items:center;padding:.75rem 1rem;border-bottom:0.5px solid var(--border)}
+.capture-row:last-child{border-bottom:none}
+.cap-rank{width:32px;font-size:13px;color:var(--muted)}
+.cap-crew{flex:1;font-size:13px;font-weight:700}
+.cap-pts{font-size:14px;font-weight:700;color:var(--accent)}
+.cap-breakdown{font-size:10px;color:var(--muted);margin-left:8px}
+.btn{padding:9px 18px;font-size:13px;font-weight:500;border-radius:8px;border:0.5px solid var(--border2);background:transparent;color:var(--text);cursor:pointer;margin-right:8px;font-family:'Noto Sans KR',sans-serif}
+.btn-p{background:var(--accent);color:var(--cream);border-color:var(--accent);font-weight:700}
+.divider{border-top:0.5px solid var(--border);margin:1.5rem 0}
+
+/* ── 모바일 대응 ── */
+@media (max-width: 480px){
+  .container{padding:.85rem}
+  header{padding:1rem .85rem}
+  .logo{font-size:18px}
+  .tab{padding:9px 12px;font-size:12px}
+  .bracket-lbl{font-size:12px}
+  .badge{font-size:9px;padding:2px 7px}
+  .final-box{width:62%}
+  .final-box-title{font-size:11px}
+  .final-box-sub{font-size:9px}
+  .group-label{font-size:9px}
+  .prelim-grid{gap:5px}
+  .crew-cell{font-size:10px;padding:8px 4px}
+  .crew-cell .trophy{right:4px;font-size:10px}
+  .final-result-grid{gap:3px;width:62%;margin-left:auto;margin-right:auto}
+  .final-crew-name{font-size:9px}
+  .final-crew-pts{font-size:8px}
+  .score-row{padding:.7rem .85rem}
+  .score-crew{font-size:13px;margin:0 8px}
+  .score-breakdown{display:none}
+  .score-total{font-size:18px}
+  .capture-title{font-size:24px}
+  .capture-podium{gap:8px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <svg width="28" height="26" viewBox="0 0 350 320.76" role="img" aria-label="DESCENTE">
+      <polygon fill="#ffffff" points="350 189.31 350 99.17 329.04 120.13 228.33 19.43 292.08 19.43 292.08 0 57.92 0 57.92 19.43 121.67 19.43 20.96 120.13 0 99.17 0 189.31 90.14 189.31 70.26 169.43 134.18 105.51 134.18 233.35 87.6 233.35 175 320.76 262.4 233.35 215.82 233.35 215.82 105.51 279.74 169.43 259.86 189.31 350 189.31"/>
+    </svg>
+  </div>
+  <div class="live-badge">
+    <div class="live-dot" id="liveDot"></div>
+    <span id="liveLabel">연결 중...</span>
+  </div>
+</header>
+
+<div class="container">
+  <div class="tab-bar">
+    <button class="tab active" onclick="goTab('match')">경기 현황</button>
+    <button class="tab" onclick="goTab('capture')">캡처 화면</button>
+  </div>
+
+  <div id="tab-match" class="page active">
+    <div id="match-view"></div>
+  </div>
+
+  <div id="tab-capture" class="page">
+    <div style="margin-bottom:1rem;display:flex;align-items:center;gap:8px">
+      <button class="btn btn-p" onclick="window.print()">🖨 인쇄 / 캡처</button>
+      <span style="font-size:12px;color:var(--muted)">Cmd+P / Ctrl+P로 PDF 저장</span>
+    </div>
+    <div class="scoreboard" id="scoreboard" style="margin-bottom:1.5rem">
+      <div class="score-header">
+        <span class="score-title">CREW STANDINGS</span>
+        <span class="score-updated" id="updatedAt">—</span>
+      </div>
+      <div class="empty-state">결선 데이터를 기다리는 중...</div>
+    </div>
+    <div class="capture-view" id="capture-view">
+      <div class="empty-state">데이터를 기다리는 중...</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const RACES = [
+  {id:'r0', type:'1v1', label:'1vs1 남자부', b1:'b1', b2:'bm', b2t:'남자'},
+  {id:'r1', type:'1v1', label:'1vs1 여자부', b1:'b1', b2:'bf', b2t:'여자'},
+  {id:'r2', type:'3v3', label:'3vs3 남자부', b1:'b3', b2:'bm', b2t:'남자'},
+  {id:'r3', type:'3v3', label:'3vs3 여자부', b1:'b3', b2:'bf', b2t:'여자'},
+  {id:'r4', type:'4v4', label:'4vs4 혼성',   b1:'b4', b2:'bmix', b2t:'혼성'},
+  {id:'r5', type:'6v6', label:'6vs6 혼성',   b1:'b6', b2:'bmix', b2t:'혼성'},
+];
+const PTS = [10, 6, 3];
+const GROUPS = ['A','B','C'];
+
+let state = { draw:{}, winners:{}, finals:{} };
+
+function getGroups(raceId){
+  const d = state.draw[raceId] || {};
+  return GROUPS.map((g,gi)=>({name:g+'조', gi, crews:(d[g]||[]).filter(Boolean)}));
+}
+function getFinalists(raceId){
+  return GROUPS.map((_,gi)=> state.winners[raceId+'_'+gi] || null);
+}
+function calcTotals(){
+  const totals={};
+  RACES.forEach(r=>{
+    Object.entries(state.finals[r.id]||{}).forEach(([crew,rank])=>{
+      if(!rank) return;
+      if(!totals[crew]) totals[crew]={total:0,detail:{}};
+      const p=PTS[rank-1]||0;
+      totals[crew].total+=p;
+      totals[crew].detail[r.id]=p;
+    });
+  });
+  return Object.entries(totals).sort((a,b)=>b[1].total-a[1].total);
+}
+
+// ── 브라켓 연결선 SVG (3개 조 → 1개 결선으로 수렴) ──
+function connectorSVG(){
+  return `<svg class="connector-svg" viewBox="0 0 300 34" preserveAspectRatio="none">
+    <line x1="150" y1="0" x2="150" y2="8" stroke="var(--border2)" stroke-width="1"/>
+    <line x1="50" y1="8" x2="250" y2="8" stroke="var(--border2)" stroke-width="1"/>
+    <line x1="50" y1="8" x2="50" y2="34" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="150" y1="8" x2="150" y2="34" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="250" y1="8" x2="250" y2="34" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3,3"/>
+  </svg>`;
+}
+
+function renderMatchView(){
+  const el = document.getElementById('match-view');
+  let html = '';
+
+  RACES.forEach(r=>{
+    const groups = getGroups(r.id);
+    const fin = getFinalists(r.id);
+    const finalRanks = state.finals[r.id] || {};
+
+    html += `<div class="bracket-section">
+      <div class="bracket-header">
+        <span class="badge ${r.b1}">${r.label.split(' ')[0]}</span>
+        <span class="badge ${r.b2}">${r.b2t}</span>
+        <span class="bracket-lbl">${r.label}</span>
+      </div>`;
+
+    if(groups.every(g=>g.crews.length===0)){
+      html += `<div style="font-size:13px;color:var(--muted);padding:8px 0">조 편성 대기 중...</div></div>`;
+      return;
+    }
+
+    // 결선 결과 계산
+    const finEntries = fin.filter(Boolean);
+    const finalRanks2 = state.finals[r.id] || {};
+    const rankMap = { gold:null, silver:null, bronze:null };
+    finEntries.forEach(crew=>{
+      const rank = finalRanks2[crew];
+      if(rank===1) rankMap.gold = crew;
+      if(rank===2) rankMap.silver = crew;
+      if(rank===3) rankMap.bronze = crew;
+    });
+    const hasAnyRank = rankMap.gold || rankMap.silver || rankMap.bronze;
+
+    if(hasAnyRank){
+      // 결선 박스 자리에 메달 결과 표시 (동일 폭)
+      const cellHTML = (cls, emoji, crew, pts) => {
+        if(!crew) return `<div class="final-result-cell empty"><div class="final-rank-emoji">${emoji}</div><div class="final-crew-name" style="color:var(--muted)">미정</div></div>`;
+        return `<div class="final-result-cell ${cls}"><div class="final-rank-emoji">${emoji}</div><div class="final-crew-name">${crew}</div><div class="final-crew-pts">${pts}pt</div></div>`;
+      };
+      html += `<div class="final-result-grid" style="margin-top:0;width:50%;margin-left:auto;margin-right:auto">
+        ${cellHTML('gold','🥇',rankMap.gold,PTS[0])}
+        ${cellHTML('silver','🥈',rankMap.silver,PTS[1])}
+        ${cellHTML('bronze','🥉',rankMap.bronze,PTS[2])}
+      </div>`;
+    } else {
+      // 결선 박스
+      html += `<div class="final-box">
+        <div class="final-box-title">결선</div>
+        <div class="final-box-sub">각 조 1위 진출 · TOP 3</div>
+      </div>`;
+    }
+
+    // 연결선
+    html += `<div class="connector-wrap">${connectorSVG()}</div>`;
+
+    // 조 라벨
+    html += `<div class="group-labels">`;
+    groups.forEach(g=>{ html += `<div class="group-label">${g.name}</div>`; });
+    html += `</div>`;
+
+    // 예선 그리드
+    html += `<div class="prelim-grid">`;
+    groups.forEach((grp,gi)=>{
+      const winner = state.winners[r.id+'_'+gi];
+      html += `<div class="prelim-col">`;
+      if(grp.crews.length===0){
+        html += `<div class="crew-cell empty-slot">미배정</div>`;
+      } else {
+        const ordered = winner
+          ? [winner, ...grp.crews.filter(c=>c!==winner)]
+          : grp.crews;
+        ordered.forEach(crew=>{
+          const cls = winner ? (winner===crew?'winner':'loser') : '';
+          const trophy = (winner===crew) ? `<span class="trophy">🏆</span>` : '';
+          html += `<div class="crew-cell ${cls}">${crew}${trophy}</div>`;
+        });
+      }
+      html += `</div>`;
+    });
+    html += `</div>`;
+
+    html += `</div>`; // bracket-section
+  });
+
+  el.innerHTML = html;
+}
+
+function renderScoreboard(){
+  const sorted=calcTotals();
+  const el=document.getElementById('scoreboard');
+  const medals=['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣'];
+  const now=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  let html=`<div class="score-header"><span class="score-title">CREW STANDINGS</span><span class="score-updated">업데이트 ${now}</span></div>`;
+  if(sorted.length===0){ html+=`<div class="empty-state">결선 순위 데이터를 기다리는 중...</div>`; }
+  else{
+    sorted.forEach(([crew,data],idx)=>{
+      const chips=RACES.map(r=>{ const p=data.detail[r.id]; return`<span class="score-chip ${p?'has':''}">${r.label.split(' ')[0]} ${r.b2t.slice(0,1)} ${p?p+'pt':'-'}</span>`; }).join('');
+      html+=`<div class="score-row ${idx===0?'rank1':''}">
+        <span class="score-rank">${medals[idx]||idx+1}</span>
+        <span class="score-crew">${crew}</span>
+        <div class="score-breakdown">${chips}</div>
+        <span class="score-total">${data.total}pt</span>
+      </div>`;
+    });
+  }
+  el.innerHTML=html;
+}
+
+function renderCapture(){
+  const sorted=calcTotals();
+  const el=document.getElementById('capture-view');
+  if(sorted.length===0){ el.innerHTML=`<div class="empty-state">데이터를 기다리는 중...</div>`; return; }
+  const medals=['🥇','🥈','🥉'];
+  const podiumOrder=[sorted[1],sorted[0],sorted[2]].filter(Boolean);
+  let html=`<div class="capture-title">AWAKEN EKIDEN RACE 2026</div><div class="capture-sub">CREW FINAL STANDINGS</div>`;
+  if(sorted.length>=2){
+    html+=`<div class="capture-podium">`;
+    podiumOrder.forEach(item=>{
+      const realIdx=sorted.indexOf(item);
+      html+=`<div class="podium-item">
+        <div class="podium-box"><span class="podium-rank">${medals[realIdx]||realIdx+1}</span></div>
+        <div class="podium-crew">${item[0]}</div>
+        <div class="podium-pts">${item[1].total}pt</div>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+  html+=`<div class="capture-list">`;
+  sorted.forEach(([crew,data],idx)=>{
+    const breakdown=RACES.filter(r=>data.detail[r.id]).map(r=>`${r.label.split(' ')[0]}${r.b2t.slice(0,1)} ${data.detail[r.id]}pt`).join(' · ');
+    html+=`<div class="capture-row">
+      <span class="cap-rank">${medals[idx]||idx+1+'위'}</span>
+      <span class="cap-crew">${crew}</span>
+      <span class="cap-breakdown">${breakdown}</span>
+      <span class="cap-pts">${data.total}pt</span>
+    </div>`;
+  });
+  html+=`</div>`;
+  el.innerHTML=html;
+}
+
+function renderAll(){ renderMatchView(); renderScoreboard(); renderCapture(); }
+
+window.goTab=function(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelectorAll('.tab')[{match:0,capture:1}[name]].classList.add('active');
+};
+
+// Firebase 하드코딩 연결
+initializeApp({
+  apiKey: "AIzaSyDDT3ab6ucSs8m5pJv6YF3NgsSLTZX0YKs",
+  authDomain: "awaken-ekiden-race-2026.firebaseapp.com",
+  databaseURL: "https://awaken-ekiden-race-2026-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "awaken-ekiden-race-2026",
+  storageBucket: "awaken-ekiden-race-2026.firebasestorage.app",
+  messagingSenderId: "960319825953",
+  appId: "1:960319825953:web:715c0e4324f37b0ac59b60"
+});
+const db = getDatabase();
+document.getElementById('liveDot').className='live-dot on';
+document.getElementById('liveLabel').textContent='실시간 연결됨';
+onValue(ref(db,'aerc2026/state'), snap=>{
+  const data=snap.val();
+  if(data){ state.draw=data.draw||{}; state.winners=data.winners||{}; state.finals=data.finals||{}; }
+  renderAll();
+});
+</script>
+</body>
+</html>
